@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gear Calculator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            margin-top: 50px;
+        }
+        .table {
+            margin-top: 20px;
+        }
+        .rpm-options a {
+            margin-left: 10px;
+            cursor: pointer;
+            color: #007bff !important;
+            text-decoration: underline !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center">Calculadora de Relação de Marchas</h1>
+        <form id="calculator-form" class="mb-4">
+            <div class="mb-3">
+                <label for="rpm" class="form-label">
+                    RPM
+                    <span class="rpm-options">
+                        <!-- Opções de RPM -->
+                        <a onclick="setRPM(1000)">1000</a>
+                        <a onclick="setRPM(3000)">3000</a>
+                        <a onclick="setRPM(5000)">5000</a>
+                        <a onclick="setRPM(7000)">7000</a>
+                    </span>
+                </label>
+                <input type="number" class="form-control" id="rpm" name="rpm" placeholder="Digite o RPM" required>
+            </div>
+            <div class="mb-3">
+                <label for="relations" class="form-label">Relações de Marcha (separadas por vírgula)</label>
+                <input type="text" class="form-control" id="relations" name="relations" placeholder="Ex.: 4.27,2.35,1.48,1.05,0.8" required>
+            </div>
+            <div class="mb-3">
+                <label for="differential" class="form-label">Relação do Diferencial</label>
+                <input 
+                    type="number" 
+                    step="0.01" 
+                    class="form-control" 
+                    id="differential" 
+                    name="differential" 
+                    placeholder="Digite o valor do diferencial (ex.: 4.87)" 
+                    required
+                >
+            </div>
+            <div class="mb-3">
+                <label for="rollingRadius" class="form-label">Raio de Rolamento (mm)</label>
+                <input type="number" class="form-control" id="rollingRadius" name="rollingRadius" placeholder="Digite o raio de rolamento em mm" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Calcular</button>
+        </form>
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>Marcha</th>
+                    <th>Velocidade (km/h)</th>
+                    <th>Relação da Marcha</th>
+                    <th>RPM Após Troca</th>
+                    <th>Queda (%)</th>
+                </tr>
+            </thead>
+            <tbody id="results-table">
+                <!-- Resultados aparecerão aqui -->
+            </tbody>
+        </table>
+    </div>
+    <script>
+        // Função para definir o RPM e acionar o cálculo
+        function setRPM(value) {
+            const rpmInput = document.getElementById('rpm');
+            rpmInput.value = value;
+
+            // Simula o clique no botão de calcular
+            const form = document.getElementById('calculator-form');
+            form.dispatchEvent(new Event('submit', { bubbles: true }));
+        }
+
+        document.getElementById('calculator-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+
+            try {
+                const response = await fetch('/calculate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams(formData),
+                });
+
+                if (!response.ok) {
+                    throw new Error('Erro na resposta do servidor');
+                }
+
+                const data = await response.json();
+                const resultsTable = document.getElementById('results-table');
+                resultsTable.innerHTML = '';
+
+                // Preenchendo a tabela
+                if (data.results) {
+                    data.results.forEach((row, index) => {
+                        const tr = document.createElement('tr');
+
+                        // Cálculo da queda percentual
+                        let quedaPercentual = '-';
+                        if (index > 0) {
+                            const previousRelation = data.results[index - 1].relation;
+                            quedaPercentual = Math.round(((previousRelation - row.relation) / previousRelation) * 100) + '%';
+                        }
+
+
+                        tr.innerHTML = `
+                            <td>${row.gear}</td>
+                            <td>${row.velocity}</td>
+                            <td>${row.relation}</td>
+                            <td>${row.rpmAfterShift || '-'}</td>
+                            <td>${quedaPercentual}</td>
+                        `;
+                        resultsTable.appendChild(tr);
+                    });
+                } else {
+                    resultsTable.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Erro nos cálculos</td></tr>';
+                }
+            } catch (error) {
+                console.error('Erro ao processar a solicitação:', error);
+            }
+        });
+    </script>
+</body>
+</html>
