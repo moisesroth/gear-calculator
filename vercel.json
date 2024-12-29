@@ -1,5 +1,0 @@
-{
-  "rewrites": [
-    { "source": "/calculate", "destination": "/api/calculate" }
-  ]
-}
