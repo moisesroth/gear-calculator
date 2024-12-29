@@ -7,6 +7,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+app.get('/welcome', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public/welcome.html'));
+});
+
+
 app.post('/calculate', (req, res) => {
     console.log('Dados recebidos:', req.body); // Log para depuração
     const { rpm, relations, differential, rollingRadius } = req.body;
